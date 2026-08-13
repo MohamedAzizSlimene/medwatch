@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+*.egg-info/
+dist/
+build/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Weights & Large Models (keep structure via .gitkeep)
+models/*
+!models/.gitkeep
+!models/**/.gitkeep
+!models/**/README.md
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.safetensors
+*.bin
+
+# Large Dataset
+ICBHI_final_database/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Git
+.git/
