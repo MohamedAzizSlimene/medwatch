@@ -186,9 +186,9 @@ export function useMedWatchStream(wsUrl = 'ws://localhost:8000/ws/stream') {
           const resampledBlock = resampleTo16kHz(inputData, nativeSampleRate);
           audioBufferRef.current.push(...resampledBlock);
 
-          // Keep 1.0 second rolling window (16,000 samples)
-          if (audioBufferRef.current.length > 16000) {
-            audioBufferRef.current = audioBufferRef.current.slice(-16000);
+          // Keep 1.5 second rolling window (24,000 samples) to capture full sneeze inhalation + burst + release
+          if (audioBufferRef.current.length > 24000) {
+            audioBufferRef.current = audioBufferRef.current.slice(-24000);
           }
         };
 

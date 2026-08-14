@@ -22,6 +22,14 @@ def test_respiratory_analyzer():
     assert "hand_to_nose_active" in res
     print(f"   Hand-to-nose detection: {res['hand_to_nose_active']}")
     assert bool(res["hand_to_nose_active"]) is True, f"Expected True but got {res['hand_to_nose_active']}"
+
+    # Test audio sneeze classification
+    sr = 16000
+    t = np.linspace(0, 1.0, sr)
+    sneeze_chunk = (np.random.normal(0, 0.3, len(t)) * np.exp(-1.5 * t) + 0.3 * np.sin(2 * np.pi * 2800 * t) * np.exp(-2 * t)).astype(np.float32)
+    sneeze_res = analyzer.analyze({"audio_chunk": sneeze_chunk})
+    assert sneeze_res["respiratory_event"] == "sneeze", f"Expected sneeze but got {sneeze_res['respiratory_event']}"
+    print(f"   Sneeze audio classification: {sneeze_res['respiratory_event']} (conf: {sneeze_res['audio_confidence']})")
     print("[OK] RespiratoryAnalyzer test passed.")
 
 def test_emotion_analyzer():

@@ -49,7 +49,7 @@ class RespiratoryAnalyzer(BaseAnalyzer):
                 if (now - self.last_cough_time) > 1.5:
                     self.cough_count += 1
                     self.last_cough_time = now
-            elif event == "sneeze" and conf >= 0.20:
+            elif event == "sneeze" and conf >= 0.15:
                 if (now - self.last_sneeze_time) > 1.5:
                     self.sneeze_count += 1
                     self.last_sneeze_time = now
