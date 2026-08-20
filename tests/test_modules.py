@@ -38,9 +38,12 @@ def test_emotion_analyzer():
     
     dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
     res = analyzer.analyze({"frame": dummy_frame})
-    assert "dominant_emotion" in res
-    assert "clinical_stress_score" in res
-    assert 0.0 <= res["clinical_stress_score"] <= 1.0
+    assert "dominant_emotion" in res, "Missing dominant_emotion"
+    assert "distribution" in res, "Missing distribution"
+    assert "sustained_events" in res, "Missing sustained_events (SustainedEmotionTracker)"
+    assert isinstance(res["sustained_events"], list), "sustained_events should be a list"
+    # clinical_stress_score is removed — confirm it's None or absent
+    assert res.get("clinical_stress_score") is None, "clinical_stress_score should be None"
     print("[OK] EmotionAnalyzer test passed.")
 
 def test_fatigue_analyzer():
@@ -56,21 +59,27 @@ def test_fatigue_analyzer():
 def test_fusion_analyzer():
     fusion = FusionAnalyzer()
     fusion.load_model()
-    
-    resp_data = {"respiratory_event": "cough", "hand_to_nose_active": True}
-    emo_data = {"clinical_stress_score": 0.7}
-    fatigue_data = {"perclos_score": 0.20}
-    
+
+    resp_data = {"respiratory_event": "cough", "hand_to_nose_active": True,
+                 "cumulative_counts": {"cough": 3, "sneeze": 0, "hand_to_nose": 0}}
+    # New: emotion data uses sustained_events instead of clinical_stress_score
+    emo_data = {
+        "dominant_emotion": "Sad",
+        "sustained_events": ["Sad expression sustained for 4.1s"],
+        "observation_label": "Sad expression sustained for 4.1s",
+        "clinical_stress_score": None
+    }
+    fatigue_data = {"yawn_count": 0, "status": "NORMAL", "is_yawning_now": False}
+
     res = fusion.analyze({
         "respiratory": resp_data,
         "emotion": emo_data,
         "fatigue": fatigue_data
     })
-    
-    assert "overall_risk_score" in res
-    assert "risk_level" in res
-    assert res["overall_risk_score"] > 0.0
-    assert len(res["active_alerts"]) > 0
+
+    assert "session_status" in res, "Missing session_status"
+    assert "active_observations" in res, "Missing active_observations"
+    assert len(res["active_observations"]) > 0, "Expected at least one observation (coughs + sustained emotion)"
     print("[OK] FusionAnalyzer test passed.")
 
 if __name__ == "__main__":

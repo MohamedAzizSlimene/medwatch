@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  medwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medwatch
+    ports:
+      - "8001:8001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+    volumes:
+      - ./models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/docs', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

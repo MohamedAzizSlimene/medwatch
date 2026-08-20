@@ -3,19 +3,22 @@ from typing import Dict, Any
 from modules.base import BaseAnalyzer
 from modules.emotion.face_cropper import YOLOv8FaceCropper
 from modules.emotion.vit_model import ViTEmotionClassifier
-from modules.emotion.temporal_smoother import TemporalEmotionSmoother
+from modules.emotion.temporal_smoother import SustainedEmotionTracker
 from core.config import settings
 
 class EmotionAnalyzer(BaseAnalyzer):
     """
-    Unified Facial Emotion & Clinical Stress Analyzer.
+    Unified Facial Emotion Analyzer with Sustained Expression Tracking.
+    Replaces the old TemporalEmotionSmoother (2-frame 70/30 + ×1.2 stress amplifier)
+    with a 30-frame rolling mean and a 3-second sustain gate.
+    Output includes sustained_events and observation_label instead of clinical_stress_score.
     """
 
     def __init__(self):
         super().__init__(name="EmotionAnalyzer")
         self.face_cropper = YOLOv8FaceCropper(model_path=settings.FATIGUE_YOLO_PATH)
         self.classifier = ViTEmotionClassifier(model_path=settings.EMOTION_MODEL_PATH)
-        self.smoother = TemporalEmotionSmoother(window_size=settings.EMOTION_TEMPORAL_WINDOW)
+        self.tracker = SustainedEmotionTracker()
 
     def load_model(self) -> bool:
         cropper_ok = self.face_cropper.load()
@@ -31,6 +34,7 @@ class EmotionAnalyzer(BaseAnalyzer):
             face_crop = self.face_cropper.crop_face(frame)
 
         raw_result = self.classifier.predict_emotion(face_crop)
-        smoothed_result = self.smoother.update(raw_result)
-        smoothed_result["face_detected"] = face_crop is not None
-        return smoothed_result
+        tracked_result = self.tracker.update(raw_result)
+        tracked_result["face_detected"] = face_crop is not None
+        return tracked_result
+

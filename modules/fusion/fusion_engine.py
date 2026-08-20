@@ -34,57 +34,72 @@ class MultiModalFusionEngine:
         fatigue_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Fuses all 3 module outputs into a unified assessment.
+        Fuses module outputs into an objective Consultation Session Telemetry Summary.
+        Removes PERCLOS drowsiness multipliers and pseudo-diagnostic risk scores.
         """
-        # 1. Respiratory sub-score
+        # 1. Respiratory Telemetry
+        counts = respiratory_data.get("cumulative_counts", {})
+        cough_count = counts.get("cough", respiratory_data.get("cough_count", 0))
+        sneeze_count = counts.get("sneeze", respiratory_data.get("sneeze_count", 0))
+        hand_to_nose_count = counts.get("hand_to_nose", respiratory_data.get("hand_to_nose_count", 0))
         resp_event = respiratory_data.get("respiratory_event", "normal")
-        hand_to_nose = respiratory_data.get("hand_to_nose_active", False)
-        resp_score = 0.0
-        if resp_event in ["cough", "sneeze"]:
-            resp_score += 0.35
-        elif resp_event == "sniffle":
-            resp_score += 0.15
-        if hand_to_nose:
-            resp_score += 0.20
-        resp_score = min(1.0, resp_score)
 
-        # 2. Emotion sub-score
-        stress_score = emotion_data.get("clinical_stress_score", 0.0)
+        # 2. Emotion & Stress Telemetry (now from SustainedEmotionTracker)
+        # clinical_stress_score is no longer produced — we use factual sustained events instead.
+        sustained_events = emotion_data.get("sustained_events", [])
+        dominant_emotion = emotion_data.get("dominant_emotion", "Neutral")
+        latest_observation = emotion_data.get("observation_label", None)
 
-        # 3. Fatigue sub-score
-        perclos = fatigue_data.get("perclos_score", 0.0)
-        fatigue_score = min(1.0, perclos * 2.5)
+        # 3. Fatigue Telemetry (Yawn frequency driven)
+        yawn_count = fatigue_data.get("yawn_count", 0)
+        fatigue_status = fatigue_data.get("status", "NORMAL")
+        is_yawning = fatigue_data.get("is_yawning_now", False)
 
-        # Weighted Multi-Modal Risk Fusion
-        # Weights: Respiratory (0.40), Emotion/Stress (0.30), Fatigue (0.30)
-        overall_risk = (resp_score * 0.40) + (stress_score * 0.30) + (fatigue_score * 0.30)
-        overall_risk = round(min(1.0, overall_risk), 3)
+        # Objective Observations & Alerts
+        observations = []
+        if (cough_count + sneeze_count) >= 3:
+            observations.append(f"Frequent Respiratory Events (Coughs: {cough_count}, Sneezes: {sneeze_count})")
+        if hand_to_nose_count >= 3:
+            observations.append(f"Frequent Hand-to-Nose Face Touch Gestures ({hand_to_nose_count} Times)")
+        if yawn_count >= 3 or is_yawning:
+            observations.append(f"Multiple Yawn Events Recorded (Total Yawns: #{yawn_count})")
+        # Sustained emotion observations come directly from the tracker (time-gated, factual)
+        for event in sustained_events:
+            if event not in observations:
+                observations.append(event)
 
-        # Determine Risk Level & Active Alerts
-        alerts = []
-        if resp_score > 0.4:
-            alerts.append("Frequent Respiratory Event / Hand-to-Nose Activity Detected")
-        if stress_score > 0.6:
-            alerts.append("Elevated Patient Stress Level Detected")
-        if fatigue_score > 0.5:
-            alerts.append("Significant Drowsiness / PERCLOS Alert")
 
-        if overall_risk >= 0.70:
-            risk_level = "CRITICAL"
-        elif overall_risk >= 0.45:
-            risk_level = "HIGH"
-        elif overall_risk >= 0.25:
+        # Session Status Determination
+        if len(observations) >= 2:
+            session_status = "ELEVATED ACTIVITY"
             risk_level = "MEDIUM"
+        elif len(observations) == 1:
+            session_status = "MONITORING"
+            risk_level = "LOW"
         else:
+            session_status = "BASELINE NORMAL"
             risk_level = "LOW"
 
         return {
-            "overall_risk_score": overall_risk,
+            "session_status": session_status,
+            "telemetry": {
+                "coughs": cough_count,
+                "sneezes": sneeze_count,
+                "hand_gestures": hand_to_nose_count,
+                "active_resp_event": resp_event,
+                "sustained_emotion_events": len(sustained_events),
+                "dominant_emotion": dominant_emotion,
+                "yawn_count": yawn_count,
+                "fatigue_status": fatigue_status
+            },
+            "active_observations": observations,
+            # Backward compatibility fields
+            "overall_risk_score": 0.15 if session_status == "BASELINE NORMAL" else 0.45,
             "risk_level": risk_level,
             "sub_scores": {
-                "respiratory": round(resp_score, 2),
-                "stress": round(stress_score, 2),
-                "fatigue": round(fatigue_score, 2)
+                "respiratory": round(min(1.0, (cough_count + sneeze_count) * 0.25 + hand_to_nose_count * 0.15), 2),
+                "emotion_events": len(sustained_events),
+                "fatigue": round(min(1.0, yawn_count * 0.33), 2)
             },
-            "active_alerts": alerts
+            "active_alerts": observations
         }

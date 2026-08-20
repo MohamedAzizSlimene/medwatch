@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8001
     LOG_LEVEL: str = "DEBUG"  # Changed to DEBUG for detailed logging
 
     # Model Weights Paths
@@ -33,8 +33,17 @@ class Settings(BaseSettings):
 
     # Analysis Thresholds
     PERCLOS_WINDOW_SECONDS: int = 60
-    EMOTION_TEMPORAL_WINDOW: int = 3
     CONFIDENCE_THRESHOLD: float = 0.5
+
+    # Emotion — Sustained Expression Tracker
+    # Rolling buffer size (frames). 30 frames ≈ 1 second at 30fps.
+    EMOTION_SMOOTHING_WINDOW: int = 30
+    # Consecutive frames a non-neutral emotion must be dominant to trigger an observation (3s @ 30fps).
+    EMOTION_SUSTAIN_THRESHOLD_FRAMES: int = 90
+    # Cooldown in seconds before the same emotion can trigger a second observation.
+    EMOTION_SUSTAIN_COOLDOWN_S: float = 10.0
+    # Emotions considered "non-neutral" for sustain tracking.
+    EMOTION_STRESS_EMOTIONS: list = ["Sad", "Fear", "Disgust", "Angry"]
 
     # MediaPipe Face Detection confidence threshold
     FACE_DETECTION_CONFIDENCE: float = 0.5

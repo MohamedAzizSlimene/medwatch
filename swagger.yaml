@@ -1,0 +1,362 @@
+openapi: 3.0.0
+info:
+  title: MedWatch AI Engine API
+  description: Real-Time AI Medical Video Consultation Engine with Multi-Modal Analysis
+  version: 1.0.0
+  contact:
+    name: MedWatch Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8001
+    description: Local development server
+  - url: http://medwatch:8000
+    description: Docker internal network
+  - url: http://api.medwatch.local
+    description: Production server
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: WebSocket
+    description: Real-time streaming analysis endpoints
+
+paths:
+  /api/v1/health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Check if the backend is running and all AI modules are loaded
+      operationId: getHealth
+      responses:
+        '200':
+          description: Backend is healthy and ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: online
+                    description: Server status
+                  app_name:
+                    type: string
+                    example: MedWatch AI Engine
+                  version:
+                    type: string
+                    example: '1.0.0'
+                  active_modules:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - 'respiratory (audio + visual hand-to-nose)'
+                      - 'emotion (ViT + AffectNet+ soft labels)'
+                      - 'fatigue (YOLOv8 + PFLD + PERCLOS)'
+                      - 'fusion (multi-modal risk score)'
+        '500':
+          description: Backend error or models not loaded
+
+  /ws/stream:
+    get:
+      tags:
+        - WebSocket
+      summary: Real-Time Analysis Stream (WebSocket)
+      description: |
+        WebSocket endpoint for streaming video frames and audio for real-time analysis.
+        
+        **Connection:** Use WebSocket protocol (ws:// or wss://)
+        
+        **Sending Data:** Client sends JSON with base64-encoded frame and audio:
+        ```json
+        {
+          "frame_b64": "<JPEG base64>",
+          "audio_b64": "<float32 audio base64>",
+          "nose_coords": [x, y],
+          "wrist_coords": [x, y]
+        }
+        ```
+        
+        **Receiving Data:** Server responds with complete analysis in real-time:
+        ```json
+        {
+          "timestamp": 1234567890.123,
+          "respiratory": {...},
+          "emotion": {...},
+          "fatigue": {...},
+          "fusion": {...}
+        }
+        ```
+        
+        **Note:** Swagger UI cannot test WebSocket connections. Use WebSocket client libraries (JavaScript WebSocket API, Python websocket-client, etc.)
+      
+      operationId: websocketStream
+      parameters:
+        - name: Connection
+          in: header
+          description: Must be "Upgrade"
+          required: true
+          schema:
+            type: string
+            enum: [Upgrade]
+        - name: Upgrade
+          in: header
+          description: Must be "websocket"
+          required: true
+          schema:
+            type: string
+            enum: [websocket]
+      responses:
+        '101':
+          description: Switching Protocols - WebSocket connection established
+        '400':
+          description: Invalid WebSocket request
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [online, offline]
+        app_name:
+          type: string
+        version:
+          type: string
+        active_modules:
+          type: array
+          items:
+            type: string
+
+    RespiratoryAnalysis:
+      type: object
+      description: Respiratory health analysis results
+      properties:
+        respiratory_event:
+          type: string
+          enum: [normal, cough, sneeze, sniffle]
+          description: Detected respiratory event from audio
+        audio_confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for audio event (0-1)
+        hand_to_nose_active:
+          type: boolean
+          description: Whether hand-to-nose gesture is currently active
+        hand_to_nose_count:
+          type: integer
+          description: Cumulative count of hand-to-nose gestures in session
+        cumulative_counts:
+          type: object
+          properties:
+            cough:
+              type: integer
+            sneeze:
+              type: integer
+            sniffle:
+              type: integer
+            hand_to_nose:
+              type: integer
+
+    EmotionAnalysis:
+      type: object
+      description: Facial emotion and stress analysis results
+      properties:
+        dominant_emotion:
+          type: string
+          enum: [Angry, Disgust, Fear, Happy, Neutral, Sad, Surprise]
+          description: Primary detected emotion
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence in dominant emotion (0-1)
+        distribution:
+          type: object
+          description: Probability distribution across all 7 emotions
+          additionalProperties:
+            type: number
+            format: float
+        sustained_events:
+          type: array
+          description: Sustained emotion events (>3 seconds)
+          items:
+            type: object
+            properties:
+              emotion:
+                type: string
+              duration_frames:
+                type: integer
+              timestamp:
+                type: number
+        observation_label:
+          type: string
+          description: Simplified observation label
+        face_detected:
+          type: boolean
+
+    FatigueAnalysis:
+      type: object
+      description: Fatigue and drowsiness analysis results
+      properties:
+        perclos_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: PERCLOS score - percentage of eye closure over 60 second window
+        status:
+          type: string
+          enum: [NORMAL, DROWSY, CRITICAL, 'No Face Detected', 'No Frame']
+          description: Fatigue status classification
+        yawn_count:
+          type: integer
+          description: Cumulative yawn count in session
+        ear:
+          type: number
+          format: float
+          description: Eye Aspect Ratio (0-1, higher = eyes more open)
+        mar:
+          type: number
+          format: float
+          description: Mouth Aspect Ratio (0-1, higher = mouth more open)
+        is_yawning_now:
+          type: boolean
+          description: Whether person is currently yawning
+        face_bbox:
+          type: array
+          items:
+            type: number
+          minItems: 4
+          maxItems: 4
+          description: Face bounding box [x1, y1, x2, y2]
+        face_detected:
+          type: boolean
+        yolo_confidence:
+          type: number
+          format: float
+
+    FusionAnalysis:
+      type: object
+      description: Multi-modal risk fusion analysis
+      properties:
+        overall_risk_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Combined risk score (0-1)
+        risk_level:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Risk classification
+        sub_scores:
+          type: object
+          description: Individual component risk scores
+          properties:
+            respiratory:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+            stress:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+            fatigue:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+        active_alerts:
+          type: array
+          description: Active clinical alerts
+          items:
+            type: string
+          example:
+            - Significant Drowsiness / PERCLOS Alert
+            - Elevated Patient Stress Level Detected
+
+    StreamRequest:
+      type: object
+      description: WebSocket request payload (frame + audio)
+      required:
+        - frame_b64
+      properties:
+        frame_b64:
+          type: string
+          format: byte
+          description: JPEG image frame encoded in base64
+        audio_b64:
+          type: string
+          format: byte
+          description: Audio chunk (float32 samples) encoded in base64. Optional.
+        nose_coords:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+          description: Optional nose coordinates [x, y] from previous detection
+        wrist_coords:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+          description: Optional wrist coordinates [x, y] from previous detection
+
+    StreamResponse:
+      type: object
+      description: Complete analysis results returned by WebSocket
+      required:
+        - timestamp
+        - respiratory
+        - emotion
+        - fatigue
+        - fusion
+      properties:
+        timestamp:
+          type: number
+          format: double
+          description: Unix timestamp of analysis
+        respiratory:
+          $ref: '#/components/schemas/RespiratoryAnalysis'
+        emotion:
+          $ref: '#/components/schemas/EmotionAnalysis'
+        fatigue:
+          $ref: '#/components/schemas/FatigueAnalysis'
+        fusion:
+          $ref: '#/components/schemas/FusionAnalysis'
+
+---
+# WebSocket Connection Example (JavaScript)
+# 
+# const ws = new WebSocket('ws://localhost:8001/ws/stream');
+#
+# ws.onopen = () => {
+#   console.log('Connected to MedWatch');
+# };
+#
+# ws.onmessage = (event) => {
+#   const data = JSON.parse(event.data);
+#   console.log('Emotion:', data.emotion.dominant_emotion);
+#   console.log('Fatigue:', data.fatigue.status);
+#   console.log('Risk:', data.fusion.risk_level);
+# };
+#
+# // Send frame + audio
+# ws.send(JSON.stringify({
+#   frame_b64: canvasToBase64(),
+#   audio_b64: audioToBase64()
+# }));

@@ -146,7 +146,7 @@ export function RespiratoryPanel({ data, audioLevel = 0, isStreaming = false }) 
       </div>
 
       {/* Cumulative Counters Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {/* Cough */}
         <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800/80 text-center">
           <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block mb-1">Coughs</span>
@@ -157,12 +157,6 @@ export function RespiratoryPanel({ data, audioLevel = 0, isStreaming = false }) 
         <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800/80 text-center">
           <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block mb-1">Sneezes</span>
           <span className="font-['Outfit'] text-xl font-bold text-cyan-400">{counts.sneeze}</span>
-        </div>
-
-        {/* Sniffle */}
-        <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800/80 text-center">
-          <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block mb-1">Sniffles</span>
-          <span className="font-['Outfit'] text-xl font-bold text-cyan-400">{counts.sniffle}</span>
         </div>
       </div>
     </div>
