@@ -49,7 +49,7 @@ export function EmotionPanel({ data }) {
           </div>
           <div>
             <h3 className="font-['Outfit'] font-semibold text-sm text-white">Emotion Tracker</h3>
-            <p className="text-[11px] text-slate-400">ViT-Base AffectNet+ · 30-frame avg</p>
+            <p className="text-[11px] text-slate-400">ViT-Base AffectNet+ · 10-frame avg</p>
           </div>
         </div>
         <div className="text-right">
@@ -83,7 +83,7 @@ export function EmotionPanel({ data }) {
           <div className="flex items-center gap-2 text-[11px] text-emerald-300">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             {isDominantStress
-              ? <span className="text-slate-400">Monitoring — threshold not yet reached (3s required)</span>
+              ? <span className="text-slate-400">Monitoring — threshold not yet reached (~2s required)</span>
               : <span>No sustained non-neutral expression detected.</span>
             }
           </div>
@@ -109,7 +109,7 @@ export function EmotionPanel({ data }) {
               <span className="w-16 text-[11px] text-slate-400 truncate">{emotion}</span>
               <div className="flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-300 ${getEmotionColor(emotion)}`}
+                  className={`h-full transition-all duration-150 ${getEmotionColor(emotion)}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>

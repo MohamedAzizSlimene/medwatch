@@ -10,7 +10,7 @@ class EmotionAnalyzer(BaseAnalyzer):
     """
     Unified Facial Emotion Analyzer with Sustained Expression Tracking.
     Replaces the old TemporalEmotionSmoother (2-frame 70/30 + ×1.2 stress amplifier)
-    with a 30-frame rolling mean and a 3-second sustain gate.
+    with a short recency-weighted mean and a ~2-second sustain gate.
     Output includes sustained_events and observation_label instead of clinical_stress_score.
     """
 
@@ -34,7 +34,8 @@ class EmotionAnalyzer(BaseAnalyzer):
             face_crop = self.face_cropper.crop_face(frame)
 
         raw_result = self.classifier.predict_emotion(face_crop)
-        tracked_result = self.tracker.update(raw_result)
+        # Do not feed Neutral fallbacks into the smoother — they bury Angry/Sad.
+        tracked_result = self.tracker.update(raw_result, face_detected=face_crop is not None)
         tracked_result["face_detected"] = face_crop is not None
         return tracked_result
 

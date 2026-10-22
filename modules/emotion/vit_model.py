@@ -5,6 +5,7 @@ from PIL import Image
 from typing import Dict, Any, Optional
 from transformers import ViTForImageClassification, ViTImageProcessor
 from core.logging import logger
+from core.config import settings
 
 
 class ViTEmotionClassifier:
@@ -71,6 +72,14 @@ class ViTEmotionClassifier:
                 outputs = self.model(**inputs)
                 logits = outputs.logits  # shape: [1, 7]
                 probs = torch.softmax(logits, dim=-1).squeeze().cpu().numpy()
+
+            # Subtle Angry/Sad is usually absorbed by Neutral on AffectNet models.
+            weights = np.array(
+                [float(settings.EMOTION_CLASS_WEIGHTS.get(label, 1.0)) for label in self.labels],
+                dtype=np.float32,
+            )
+            probs = probs * weights
+            probs = probs / (probs.sum() + 1e-8)
 
             # Build probability distribution dict
             distribution = {

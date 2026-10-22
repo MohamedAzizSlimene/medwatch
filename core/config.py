@@ -36,14 +36,28 @@ class Settings(BaseSettings):
     CONFIDENCE_THRESHOLD: float = 0.5
 
     # Emotion — Sustained Expression Tracker
-    # Rolling buffer size (frames). 30 frames ≈ 1 second at 30fps.
-    EMOTION_SMOOTHING_WINDOW: int = 30
-    # Consecutive frames a non-neutral emotion must be dominant to trigger an observation (3s @ 30fps).
-    EMOTION_SUSTAIN_THRESHOLD_FRAMES: int = 90
+    # Stream is ~10 FPS (100ms). 10 frames ≈ 1s of recency-weighted averaging.
+    EMOTION_SMOOTHING_WINDOW: int = 10
+    # Consecutive frames a non-neutral emotion must stay dominant (~2s @ 10fps).
+    EMOTION_SUSTAIN_THRESHOLD_FRAMES: int = 20
     # Cooldown in seconds before the same emotion can trigger a second observation.
     EMOTION_SUSTAIN_COOLDOWN_S: float = 10.0
     # Emotions considered "non-neutral" for sustain tracking.
     EMOTION_STRESS_EMOTIONS: list = ["Sad", "Fear", "Disgust", "Angry"]
+    # AffectNet models dump subtle Angry/Sad into Neutral. Rebalance after softmax.
+    EMOTION_CLASS_WEIGHTS: dict = {
+        "Angry": 1.28,
+        "Sad": 1.28,
+        "Fear": 1.10,
+        "Disgust": 1.12,
+        "Happy": 1.00,
+        "Surprise": 1.00,
+        "Neutral": 0.72,
+    }
+    # If Neutral wins but a hard class is within this gap, prefer the hard class.
+    EMOTION_NEUTRAL_MARGIN: float = 0.12
+    # Minimum probability before a hard class can override Neutral.
+    EMOTION_HARD_MIN_PROB: float = 0.14
 
     # MediaPipe Face Detection confidence threshold
     FACE_DETECTION_CONFIDENCE: float = 0.5

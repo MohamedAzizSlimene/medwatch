@@ -22,7 +22,7 @@ class YOLOv8FaceCropper:
     def crop_face(
         self,
         frame_bgr: np.ndarray,
-        padding_pct: float = 0.20
+        padding_pct: float = 0.12
     ) -> Optional[np.ndarray]:
         """
         Detects primary face in a BGR frame and returns a square cropped face image (RGB numpy array).

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export function useMedWatchStream(wsUrl = 'ws://localhost:8000/ws/stream') {
+export function useMedWatchStream(wsUrl = 'ws://localhost:8001/ws/stream') {
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState(null);
@@ -77,7 +77,7 @@ export function useMedWatchStream(wsUrl = 'ws://localhost:8000/ws/stream') {
 
       ws.onerror = (err) => {
         console.error('[MedWatch WS] Error:', err);
-        setStreamError('WebSocket connection error. Ensure AI backend server is running on port 8000.');
+        setStreamError('WebSocket connection error. Ensure AI backend server is running on port 8001.');
         setIsConnected(false);
         isProcessingRef.current = false;
       };
